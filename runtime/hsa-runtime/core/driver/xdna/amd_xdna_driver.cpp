@@ -45,6 +45,7 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
+#include <cstdlib>
 #include <memory>
 #include <string>
 
@@ -252,6 +253,20 @@ hsa_status_t XdnaDriver::DestroyQueue(core::Queue &queue) const {
   }
 
   return HSA_STATUS_SUCCESS;
+}
+
+hsa_status_t
+XdnaDriver::ConfigHwCtx(core::Queue &queue,
+                        hsa_amd_queue_hw_ctx_config_param_t config_type,
+                        void *args) {
+  switch (config_type) {
+  case HSA_AMD_QUEUE_AIE_ERT_HW_CXT_CONFIG_CU:
+    return ConfigHwCtxCU(
+        queue,
+        *reinterpret_cast<hsa_amd_aie_ert_hw_ctx_config_cu_param_addr_t *>(args));
+  default:
+    return HSA_STATUS_ERROR_INVALID_ARGUMENT;
+  }
 }
 
 hsa_status_t XdnaDriver::QueryDriverVersion() {
@@ -557,6 +572,59 @@ hsa_status_t XdnaDriver::SubmitCmdChain(hsa_amd_aie_ert_packet_t* first_pkt, uin
   if (SyncBos(bo_addrs, bo_sizes)) return HSA_STATUS_ERROR;
 
   return HSA_STATUS_SUCCESS;
+}
+
+hsa_status_t XdnaDriver::ConfigHwCtxCU(
+    core::Queue &queue,
+    hsa_amd_aie_ert_hw_ctx_config_cu_param_addr_t &config_cu_param) {
+
+  if (!AieAqlQueue::IsType(&queue)) {
+    return HSA_STATUS_ERROR_INVALID_QUEUE;
+  }
+
+  auto &aie_queue(static_cast<AieAqlQueue &>(queue));
+
+  size_t config_cu_param_size(sizeof(amdxdna_hwctx_param_config_cu) +
+                              config_cu_param.num_cus *
+                                  sizeof(amdxdna_cu_config));
+
+  amdxdna_hwctx_param_config_cu *xdna_config_cu_param =
+      reinterpret_cast<amdxdna_hwctx_param_config_cu *>(
+          malloc(config_cu_param_size));
+  if (xdna_config_cu_param == nullptr) {
+    return HSA_STATUS_ERROR_OUT_OF_RESOURCES;
+  }
+  MAKE_SCOPE_GUARD([xdna_config_cu_param] { free(xdna_config_cu_param); });
+
+  xdna_config_cu_param->num_cus = config_cu_param.num_cus;
+
+  for (int i = 0; i < xdna_config_cu_param->num_cus; ++i) {
+
+    // Get the handle from the address
+    auto cu_bo = vmem_addr_mappings.find(reinterpret_cast<void *>(config_cu_param.cu_configs[i].cu_config_addr));
+    if (cu_bo == vmem_addr_mappings.end())
+      return HSA_STATUS_ERROR_INVALID_ALLOCATION;
+    
+    xdna_config_cu_param->cu_configs[i].cu_bo = cu_bo->second;
+    xdna_config_cu_param->cu_configs[i].cu_func =
+        config_cu_param.cu_configs[i].cu_func;
+
+    // sync configuration buffer
+    FlushCpuCache(reinterpret_cast<void *>(config_cu_param.cu_configs[i].cu_config_addr), 0, config_cu_param.cu_configs[i].cu_size);
+  }
+
+  amdxdna_drm_config_hwctx config_hw_ctx_args{
+      .handle = aie_queue.GetHwCtxHandle(),
+      .param_type = DRM_AMDXDNA_HWCTX_CONFIG_CU,
+      .param_val = reinterpret_cast<uint64_t>(xdna_config_cu_param),
+      .param_val_size = static_cast<uint32_t>(config_cu_param_size)};
+
+  if (ioctl(fd_, DRM_IOCTL_AMDXDNA_CONFIG_HWCTX, &config_hw_ctx_args) < 0) {
+    return HSA_STATUS_ERROR;
+  }
+
+  return HSA_STATUS_SUCCESS;
+
 }
 
 } // namespace AMD

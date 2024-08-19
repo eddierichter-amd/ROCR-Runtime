@@ -266,6 +266,14 @@ hsa_status_t AieAqlQueue::GetInfo(hsa_queue_info_attribute_t attribute,
   return HSA_STATUS_SUCCESS;
 }
 
+hsa_status_t
+AieAqlQueue::ConfigHwCtx(hsa_amd_queue_hw_ctx_config_param_t config_type,
+                         void *args) {
+  auto &driver = static_cast<XdnaDriver &>(agent_.driver());
+  
+  return driver.ConfigHwCtx(*this, config_type, args);
+}
+
 hsa_status_t AieAqlQueue::GetCUMasking(uint32_t num_cu_mask_count,
                                        uint32_t *cu_mask) {
   assert(false && "AIE AQL queue does not support CU masking.");
