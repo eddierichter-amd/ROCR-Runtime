@@ -88,6 +88,9 @@ public:
   hsa_status_t Unmap(core::ShareableHandle handle, void *mem, size_t offset,
                      size_t size) override;
   hsa_status_t ReleaseShareableHandle(core::ShareableHandle &handle) override;
+  hsa_status_t ConfigHwCtx(core::Queue &queue,
+                           hsa_amd_queue_hw_ctx_config_param_t config_type,
+                           void *args) override;
 
 private:
   /// @brief Allocate agent accessible memory (system / local memory).
