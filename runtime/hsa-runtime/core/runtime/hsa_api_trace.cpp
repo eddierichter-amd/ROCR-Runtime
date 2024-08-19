@@ -413,6 +413,7 @@ void HsaApiTable::UpdateAmdExts() {
   amd_ext_api.hsa_amd_signal_async_handler_fn = AMD::hsa_amd_signal_async_handler;
   amd_ext_api.hsa_amd_async_function_fn = AMD::hsa_amd_async_function;
   amd_ext_api.hsa_amd_signal_wait_any_fn = AMD::hsa_amd_signal_wait_any;
+  amd_ext_api.hsa_amd_queue_hw_ctx_config_fn = AMD::hsa_amd_queue_hw_ctx_config;
   amd_ext_api.hsa_amd_queue_cu_set_mask_fn = AMD::hsa_amd_queue_cu_set_mask;
   amd_ext_api.hsa_amd_queue_cu_get_mask_fn = AMD::hsa_amd_queue_cu_get_mask;
   amd_ext_api.hsa_amd_memory_pool_get_info_fn = AMD::hsa_amd_memory_pool_get_info;
