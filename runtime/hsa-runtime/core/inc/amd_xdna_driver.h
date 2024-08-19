@@ -114,6 +114,10 @@ public:
   hsa_status_t CreateQueue(core::Queue &queue) const override;
   hsa_status_t DestroyQueue(core::Queue &queue) const override;
 
+  hsa_status_t ConfigHwCtx(core::Queue &queue,
+                           hsa_amd_queue_hw_ctx_config_param_t config_type,
+                           void *args) override;
+
 private:
   hsa_status_t QueryDriverVersion();
   /// @brief Allocate device accesible heap space.
@@ -128,6 +132,13 @@ private:
   /// to manage some of this for now.
   std::unordered_map<uint32_t, void *> vmem_handle_mappings;
   std::unordered_map<void*, uint32_t> vmem_addr_mappings;
+
+  /// @brief Configures the CUs associated with the HW context for this queue.
+  ///
+  /// @param config_cu_param CU configuration information.
+  hsa_status_t
+  ConfigHwCtxCU(core::Queue &queue,
+                hsa_amd_aie_ert_hw_ctx_config_cu_param_t &config_cu_param);
 
   /// @brief Virtual address range allocated for the device heap.
   ///
