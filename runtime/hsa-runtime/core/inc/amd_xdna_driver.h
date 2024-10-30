@@ -70,6 +70,7 @@ public:
   hsa_status_t QueryKernelModeDriver(core::DriverQuery query) override;
 
   hsa_status_t GetHandleMappings(std::unordered_map<uint32_t, void*> &vmem_handle_mappings);
+  hsa_status_t GetAddrMappings(std::unordered_map<void*, uint32_t> &vmem_addr_mappings);
   hsa_status_t GetFd(int &fd);
 
   hsa_status_t GetAgentProperties(core::Agent &agent) const override;
@@ -101,6 +102,7 @@ private:
   /// driver handles requires a bit more refactoring. So rely on the XDNA driver
   /// to manage some of this for now.
   std::unordered_map<uint32_t, void *> vmem_handle_mappings;
+  std::unordered_map<void*, uint32_t> vmem_addr_mappings;
 
   /// @brief Virtual address range allocated for the device heap.
   ///
@@ -111,7 +113,7 @@ private:
 
   /// @brief The aligned device heap.
   void *dev_heap_aligned = nullptr;
-  static constexpr size_t dev_heap_size = 48 * 1024 * 1024;
+  static constexpr size_t dev_heap_size = 64 * 1024 * 1024;
   static constexpr size_t dev_heap_align = 64 * 1024 * 1024;
 };
 

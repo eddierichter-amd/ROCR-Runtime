@@ -190,11 +190,30 @@ XdnaDriver::AllocateMemory(const core::MemoryRegion &mem_region,
   }
 
   vmem_handle_mappings.emplace(create_bo_args.handle, mapped_mem);
+  vmem_addr_mappings.emplace(mapped_mem, create_bo_args.handle);
 
   return HSA_STATUS_SUCCESS;
 }
 
-hsa_status_t XdnaDriver::FreeMemory(void *mem, size_t size) {
+hsa_status_t XdnaDriver::FreeMemory(void* ptr, size_t size) {
+  auto it = vmem_addr_mappings.find(ptr);
+  if (it == vmem_addr_mappings.end())
+    return HSA_STATUS_ERROR_INVALID_ALLOCATION;
+
+  // TODO:ypapadop-amd: need to unmap memory, but we don't know if it's mapped or not as we don't have
+  // region information
+
+  auto handle = it->second;
+
+  drm_gem_close close_args = {};
+  close_args.handle = handle;
+  if (ioctl(fd_, DRM_IOCTL_GEM_CLOSE, &close_args) < 0) {
+    return HSA_STATUS_ERROR;
+  }
+
+  vmem_handle_mappings.erase(handle);
+  vmem_addr_mappings.erase(it);
+
   return HSA_STATUS_SUCCESS;
 }
 
@@ -322,6 +341,11 @@ hsa_status_t XdnaDriver::GetHandleMappings(std::unordered_map<uint32_t, void*> &
   return HSA_STATUS_SUCCESS;
 }
 
+hsa_status_t XdnaDriver::GetAddrMappings(std::unordered_map<void*, uint32_t> &vmem_handle_mappings) {
+  vmem_handle_mappings = this->vmem_addr_mappings;
+  return HSA_STATUS_SUCCESS;
+}
+
 hsa_status_t XdnaDriver::GetFd(int &fd) {
   fd = fd_;
   return HSA_STATUS_SUCCESS;
@@ -341,5 +365,3 @@ hsa_status_t XdnaDriver::FreeDeviceHeap() {
   return HSA_STATUS_SUCCESS;
 }
 
-} // namespace AMD
-} // namespace rocr
