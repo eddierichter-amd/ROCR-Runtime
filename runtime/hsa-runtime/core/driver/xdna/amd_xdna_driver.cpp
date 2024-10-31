@@ -363,5 +363,6 @@ hsa_status_t XdnaDriver::FreeDeviceHeap() {
 
   return HSA_STATUS_SUCCESS;
 }
+
 }
 }
