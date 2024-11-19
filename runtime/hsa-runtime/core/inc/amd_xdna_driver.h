@@ -138,7 +138,7 @@ private:
   /// @param config_cu_param CU configuration information.
   hsa_status_t
   ConfigHwCtxCU(core::Queue &queue,
-                hsa_amd_aie_ert_hw_ctx_config_cu_param_t &config_cu_param);
+                hsa_amd_aie_ert_hw_ctx_config_cu_param_addr_t &config_cu_param);
 
   /// @brief Virtual address range allocated for the device heap.
   ///
