@@ -284,7 +284,6 @@ hsa_status_t XdnaDriver::InitDeviceHeap() {
   amdxdna_drm_create_bo create_bo_args{
     .flags = 0,
     .type = AMDXDNA_BO_DEV_HEAP,
-    ._pad = 0,
     .vaddr = reinterpret_cast<uintptr_t>(nullptr),
     .size = dev_heap_size,
     .handle = 0};
@@ -364,4 +363,5 @@ hsa_status_t XdnaDriver::FreeDeviceHeap() {
 
   return HSA_STATUS_SUCCESS;
 }
-
+}
+}

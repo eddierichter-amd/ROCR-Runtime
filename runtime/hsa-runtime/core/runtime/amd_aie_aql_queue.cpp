@@ -226,7 +226,8 @@ uint64_t AieAqlQueue::AddWriteIndexAcqRel(uint64_t value) {
 void AieAqlQueue::StoreRelaxed(hsa_signal_value_t value) {
   std::unordered_map<void*, uint32_t> vmem_addr_mappings;
 
-  if (driver.GetHandleMappings(vmem_handle_mappings) != HSA_STATUS_SUCCESS) {
+  auto &driver = static_cast<XdnaDriver &>(agent_.driver());
+  if (driver.GetAddrMappings(vmem_addr_mappings) != HSA_STATUS_SUCCESS) {
     return;
   }
 
