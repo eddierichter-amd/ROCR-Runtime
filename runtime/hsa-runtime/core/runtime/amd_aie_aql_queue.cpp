@@ -223,8 +223,7 @@ uint64_t AieAqlQueue::AddWriteIndexAcqRel(uint64_t value) {
 void AieAqlQueue::StoreRelaxed(hsa_signal_value_t value) {
   std::unordered_map<uint32_t, void*> vmem_handle_mappings;
 
-  auto &driver = static_cast<XdnaDriver &>(
-      core::Runtime::runtime_singleton_->AgentDriver(agent_.driver_type));
+  auto &driver = static_cast<XdnaDriver &>(agent_.driver());
   if (driver.GetHandleMappings(vmem_handle_mappings) != HSA_STATUS_SUCCESS) {
     return;
   }
