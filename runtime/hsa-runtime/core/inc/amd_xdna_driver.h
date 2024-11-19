@@ -77,12 +77,17 @@ public:
                               void **mem, size_t size,
                               uint32_t node_id) override;
   hsa_status_t FreeMemory(void *mem, size_t size) override;
-
-  /// @brief Creates a context on the AIE device for this queue.
-  /// @param queue Queue whose on-device context is being created.
-  /// @return hsa_status_t
   hsa_status_t CreateQueue(core::Queue &queue) const override;
   hsa_status_t DestroyQueue(core::Queue &queue) const override;
+  hsa_status_t ExportDMABuf(void *va, size_t size, int *dmabuf_fd,
+                            size_t *offset) override;
+  hsa_status_t ImportDMABuf(int dmabuf_fd, core::Agent &agent,
+                            core::ShareableHandle &handle) override;
+  hsa_status_t Map(core::ShareableHandle handle, void *va, size_t offset,
+                   size_t size, hsa_access_permission_t perms) override;
+  hsa_status_t Unmap(core::ShareableHandle handle, void *va, size_t offset,
+                     size_t size) override;
+  hsa_status_t ReleaseShareableHandle(core::ShareableHandle &handle) override;
 
 private:
   hsa_status_t QueryDriverVersion();
