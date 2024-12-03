@@ -195,18 +195,16 @@ uint64_t AieAqlQueue::AddWriteIndexAcqRel(uint64_t value) {
 }
 
 void AieAqlQueue::StoreRelaxed(hsa_signal_value_t value) {
-  auto &driver = static_cast<XdnaDriver &>(agent_.driver());
-  SubmitCmd(driver, amd_queue_.hsa_queue.base_address,
-            amd_queue_.read_dispatch_id, amd_queue_.write_dispatch_id);
+  auto& driver = static_cast<XdnaDriver&>(agent_.driver());
+  SubmitCmd(driver, amd_queue_.hsa_queue.base_address, amd_queue_.read_dispatch_id,
+            amd_queue_.write_dispatch_id);
 }
 
-hsa_status_t AieAqlQueue::SubmitCmd(XdnaDriver &driver, void *queue_base,
-                                    uint64_t read_dispatch_id,
+hsa_status_t AieAqlQueue::SubmitCmd(XdnaDriver& driver, void* queue_base, uint64_t read_dispatch_id,
                                     uint64_t write_dispatch_id) {
   uint64_t cur_id = read_dispatch_id;
   while (cur_id < write_dispatch_id) {
-    hsa_amd_aie_ert_packet_t *pkt =
-        static_cast<hsa_amd_aie_ert_packet_t *>(queue_base) + cur_id;
+    hsa_amd_aie_ert_packet_t* pkt = static_cast<hsa_amd_aie_ert_packet_t*>(queue_base) + cur_id;
 
     // Get the packet header information
     if (pkt->header.header != HSA_PACKET_TYPE_VENDOR_SPECIFIC ||
@@ -221,8 +219,8 @@ hsa_status_t AieAqlQueue::SubmitCmd(XdnaDriver &driver, void *queue_base,
         int num_cont_start_cu_pkts = 1;
         int num_operands = 0;
         for (int peak_pkt_id = cur_id + 1; peak_pkt_id < write_dispatch_id; peak_pkt_id++) {
-          hsa_amd_aie_ert_packet_t *peak_pkt =
-              static_cast<hsa_amd_aie_ert_packet_t *>(queue_base) + peak_pkt_id;
+          hsa_amd_aie_ert_packet_t* peak_pkt =
+              static_cast<hsa_amd_aie_ert_packet_t*>(queue_base) + peak_pkt_id;
           if (peak_pkt->opcode != HSA_AMD_AIE_ERT_START_CU) {
             break;
           }
@@ -231,8 +229,8 @@ hsa_status_t AieAqlQueue::SubmitCmd(XdnaDriver &driver, void *queue_base,
         }
 
         // Call into the driver to submit from cur_id to write_dispatch_id
-        if (driver.SubmitCmdChain(pkt, num_cont_start_cu_pkts, num_operands,
-                                  hw_ctx_handle_) != HSA_STATUS_SUCCESS)
+        if (driver.SubmitCmdChain(pkt, num_cont_start_cu_pkts, num_operands, hw_ctx_handle_) !=
+            HSA_STATUS_SUCCESS)
           return HSA_STATUS_ERROR;
 
         cur_id += num_cont_start_cu_pkts;
@@ -256,12 +254,11 @@ hsa_status_t AieAqlQueue::GetInfo(hsa_queue_info_attribute_t attribute,
                                   void *value) {
   switch (attribute) {
     case HSA_AMD_QUEUE_INFO_AGENT:
-      *static_cast<hsa_agent_t *>(value) = agent_.public_handle();
+      *static_cast<hsa_agent_t*>(value) = agent_.public_handle();
       break;
     case HSA_AMD_QUEUE_INFO_DOORBELL_ID:
       // Hardware doorbell supports AQL semantics.
-      *static_cast<uint64_t *>(value) =
-          reinterpret_cast<uint64_t>(signal_.hardware_doorbell_ptr);
+      *static_cast<uint64_t*>(value) = reinterpret_cast<uint64_t>(signal_.hardware_doorbell_ptr);
       break;
     default:
       return HSA_STATUS_ERROR_INVALID_ARGUMENT;
