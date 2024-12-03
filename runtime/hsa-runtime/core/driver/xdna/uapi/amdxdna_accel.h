@@ -127,8 +127,8 @@ struct amdxdna_drm_destroy_hwctx {
  */
 struct amdxdna_cu_config {
   __u32 cu_bo;
-  __u8  cu_func;
-  __u8  pad[3];
+  __u8 cu_func;
+  __u8 pad[3];
 };
 
 /**
@@ -233,7 +233,7 @@ struct amdxdna_drm_get_bo_info {
  */
 struct amdxdna_drm_sync_bo {
   __u32 handle;
-#define SYNC_DIRECT_TO_DEVICE	0U
+#define SYNC_DIRECT_TO_DEVICE 0U
 #define SYNC_DIRECT_FROM_DEVICE 1U
   __u32 direction;
   __u64 offset;
@@ -293,7 +293,7 @@ struct amdxdna_drm_wait_cmd {
  * @cols_filled: A bitmap of AIE columns whose data has been returned in the buffer.
  */
 struct amdxdna_drm_query_aie_status {
-  __u64 buffer; /* out */
+  __u64 buffer;      /* out */
   __u32 buffer_size; /* in */
   __u32 cols_filled; /* out */
 };
@@ -369,9 +369,7 @@ struct amdxdna_drm_query_clock_metadata {
   struct amdxdna_drm_query_clock h_clock;
 };
 
-enum amdxdna_sensor_type {
-  AMDXDNA_SENSOR_TYPE_POWER
-};
+enum amdxdna_sensor_type { AMDXDNA_SENSOR_TYPE_POWER };
 
 /**
  * struct amdxdna_drm_query_sensor - The data for single sensor.
@@ -516,9 +514,9 @@ enum amdxdna_drm_get_param {
  * @buffer: A structure specified by the param struct member.
  */
 struct amdxdna_drm_get_info {
-  __u32 param; /* in */
+  __u32 param;       /* in */
   __u32 buffer_size; /* in/out */
-  __u64 buffer; /* in/out */
+  __u64 buffer;      /* in/out */
 };
 
 /**
@@ -545,50 +543,40 @@ enum amdxdna_drm_set_param {
  * @buffer: A structure specified by the param struct member.
  */
 struct amdxdna_drm_set_state {
-  __u32 param; /* in */
+  __u32 param;       /* in */
   __u32 buffer_size; /* in */
-  __u64 buffer; /* in */
+  __u64 buffer;      /* in */
 };
 
-#define DRM_IOCTL_AMDXDNA_CREATE_HWCTX \
-  DRM_IOWR(DRM_COMMAND_BASE + DRM_AMDXDNA_CREATE_HWCTX, \
-          struct amdxdna_drm_create_hwctx)
+#define DRM_IOCTL_AMDXDNA_CREATE_HWCTX                                                             \
+  DRM_IOWR(DRM_COMMAND_BASE + DRM_AMDXDNA_CREATE_HWCTX, struct amdxdna_drm_create_hwctx)
 
-#define DRM_IOCTL_AMDXDNA_DESTROY_HWCTX \
-  DRM_IOWR(DRM_COMMAND_BASE + DRM_AMDXDNA_DESTROY_HWCTX, \
-          struct amdxdna_drm_destroy_hwctx)
+#define DRM_IOCTL_AMDXDNA_DESTROY_HWCTX                                                            \
+  DRM_IOWR(DRM_COMMAND_BASE + DRM_AMDXDNA_DESTROY_HWCTX, struct amdxdna_drm_destroy_hwctx)
 
-#define DRM_IOCTL_AMDXDNA_CONFIG_HWCTX \
-  DRM_IOWR(DRM_COMMAND_BASE + DRM_AMDXDNA_CONFIG_HWCTX, \
-          struct amdxdna_drm_config_hwctx)
+#define DRM_IOCTL_AMDXDNA_CONFIG_HWCTX                                                             \
+  DRM_IOWR(DRM_COMMAND_BASE + DRM_AMDXDNA_CONFIG_HWCTX, struct amdxdna_drm_config_hwctx)
 
-#define DRM_IOCTL_AMDXDNA_CREATE_BO \
-  DRM_IOWR(DRM_COMMAND_BASE + DRM_AMDXDNA_CREATE_BO, \
-          struct amdxdna_drm_create_bo)
+#define DRM_IOCTL_AMDXDNA_CREATE_BO                                                                \
+  DRM_IOWR(DRM_COMMAND_BASE + DRM_AMDXDNA_CREATE_BO, struct amdxdna_drm_create_bo)
 
-#define DRM_IOCTL_AMDXDNA_GET_BO_INFO \
-  DRM_IOWR(DRM_COMMAND_BASE + DRM_AMDXDNA_GET_BO_INFO, \
-          struct amdxdna_drm_get_bo_info)
+#define DRM_IOCTL_AMDXDNA_GET_BO_INFO                                                              \
+  DRM_IOWR(DRM_COMMAND_BASE + DRM_AMDXDNA_GET_BO_INFO, struct amdxdna_drm_get_bo_info)
 
-#define DRM_IOCTL_AMDXDNA_SYNC_BO \
-  DRM_IOWR(DRM_COMMAND_BASE + DRM_AMDXDNA_SYNC_BO, \
-          struct amdxdna_drm_sync_bo)
+#define DRM_IOCTL_AMDXDNA_SYNC_BO                                                                  \
+  DRM_IOWR(DRM_COMMAND_BASE + DRM_AMDXDNA_SYNC_BO, struct amdxdna_drm_sync_bo)
 
-#define DRM_IOCTL_AMDXDNA_EXEC_CMD \
-  DRM_IOWR(DRM_COMMAND_BASE + DRM_AMDXDNA_EXEC_CMD, \
-          struct amdxdna_drm_exec_cmd)
+#define DRM_IOCTL_AMDXDNA_EXEC_CMD                                                                 \
+  DRM_IOWR(DRM_COMMAND_BASE + DRM_AMDXDNA_EXEC_CMD, struct amdxdna_drm_exec_cmd)
 
-#define DRM_IOCTL_AMDXDNA_WAIT_CMD \
-  DRM_IOWR(DRM_COMMAND_BASE + DRM_AMDXDNA_WAIT_CMD, \
-          struct amdxdna_drm_wait_cmd)
+#define DRM_IOCTL_AMDXDNA_WAIT_CMD                                                                 \
+  DRM_IOWR(DRM_COMMAND_BASE + DRM_AMDXDNA_WAIT_CMD, struct amdxdna_drm_wait_cmd)
 
-#define DRM_IOCTL_AMDXDNA_GET_INFO \
-  DRM_IOWR(DRM_COMMAND_BASE + DRM_AMDXDNA_GET_INFO, \
-          struct amdxdna_drm_get_info)
+#define DRM_IOCTL_AMDXDNA_GET_INFO                                                                 \
+  DRM_IOWR(DRM_COMMAND_BASE + DRM_AMDXDNA_GET_INFO, struct amdxdna_drm_get_info)
 
-#define DRM_IOCTL_AMDXDNA_SET_STATE \
-  DRM_IOWR(DRM_COMMAND_BASE + DRM_AMDXDNA_SET_STATE, \
-          struct amdxdna_drm_set_state)
+#define DRM_IOCTL_AMDXDNA_SET_STATE                                                                \
+  DRM_IOWR(DRM_COMMAND_BASE + DRM_AMDXDNA_SET_STATE, struct amdxdna_drm_set_state)
 
 #if defined(__cplusplus)
 } /* extern c end */

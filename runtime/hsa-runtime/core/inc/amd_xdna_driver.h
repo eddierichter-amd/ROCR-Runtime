@@ -122,8 +122,7 @@ constexpr uint32_t DEFAULT_TIMEOUT_VAL = 50;
 /// given the number of arguments in the packet
 /// @param: arg_count(Input), Number of arguments in the packet
 /// @return: uint32_t, The number of operands in the packet
-inline uint32_t
-GetOperandCount(uint32_t arg_count) {
+inline uint32_t GetOperandCount(uint32_t arg_count) {
   return ((arg_count - NON_OPERAND_COUNT) / 2);
 }
 
@@ -160,11 +159,10 @@ public:
   hsa_status_t DestroyQueue(core::Queue &queue) const override;
 
   // @brief Submits num_pkts packets in a command chain to the XDNA driver
-  hsa_status_t SubmitCmdChain(hsa_amd_aie_ert_packet_t *first_pkt,
-                              uint32_t num_pkts, uint32_t num_operands,
-                              uint32_t hw_ctx_handle);
+  hsa_status_t SubmitCmdChain(hsa_amd_aie_ert_packet_t* first_pkt, uint32_t num_pkts,
+                              uint32_t num_operands, uint32_t hw_ctx_handle);
 
-private:
+ private:
   hsa_status_t QueryDriverVersion();
   /// @brief Allocate device accesible heap space.
   ///
@@ -178,7 +176,7 @@ private:
   /// @param size size of memory to allocate
   /// @param handle A pointer to the BO handle
   /// @param cmd A pointer to the buffer
-  hsa_status_t CreateCmd(uint32_t size, uint32_t *handle, amdxdna_cmd **cmd);
+  hsa_status_t CreateCmd(uint32_t size, uint32_t* handle, amdxdna_cmd** cmd);
 
   /// @brief Adds all BOs in a command packet payload to a vector
   ///         and replaces the handles with a virtual address
@@ -186,25 +184,22 @@ private:
   /// @param count Number of entries in the command
   /// @param bo_args A pointer to a vector that contains all bo handles
   /// @param cmd_pkt_payload A pointer to the payload of the command
-  hsa_status_t RegisterCmdBOs(
-      uint32_t count, std::vector<uint32_t> &bo_args,
-      std::vector<uint32_t> &bo_sizes, std::vector<uint64_t> &bo_addrs,
-      hsa_amd_aie_ert_start_kernel_data_t *cmd_pkt_payload,
-      const std::unordered_map<void *, uint32_t> &vmem_addr_mappings);
+  hsa_status_t RegisterCmdBOs(uint32_t count, std::vector<uint32_t>& bo_args,
+                              std::vector<uint32_t>& bo_sizes, std::vector<uint64_t>& bo_addrs,
+                              hsa_amd_aie_ert_start_kernel_data_t* cmd_pkt_payload,
+                              const std::unordered_map<void*, uint32_t>& vmem_addr_mappings);
 
   /// @brief Syncs all BOs referenced in bo_args
   ///
   /// @param bo_args vector containing handles of BOs to sync
-  hsa_status_t SyncBos(const std::vector<uint64_t> &bo_args,
-                       const std::vector<uint32_t> &bo_sizes);
+  hsa_status_t SyncBos(const std::vector<uint64_t>& bo_args, const std::vector<uint32_t>& bo_sizes);
 
   /// @brief Executes a command and waits for its completion
   ///
   /// @param exec_cmd Structure containing the details of the command to execute
   /// @param hw_ctx_handle the handle of the hardware context to run this
   /// command
-  hsa_status_t ExecCmdAndWait(amdxdna_drm_exec_cmd *exec_cmd,
-                              uint32_t hw_ctx_handle);
+  hsa_status_t ExecCmdAndWait(amdxdna_drm_exec_cmd* exec_cmd, uint32_t hw_ctx_handle);
 
   /// TODO: Remove this in the future and rely on the core Runtime
   /// object to track handle allocations. Using the VMEM API for mapping XDNA
