@@ -139,7 +139,6 @@ public:
   hsa_status_t Init() override;
   hsa_status_t QueryKernelModeDriver(core::DriverQuery query) override;
 
-  std::unordered_map<uint32_t, void*>& GetHandleMappings();
   std::unordered_map<void*, uint32_t>& GetAddrMappings();
 
   hsa_status_t GetAgentProperties(core::Agent &agent) const override;
@@ -214,7 +213,6 @@ private:
   /// object to track handle allocations. Using the VMEM API for mapping XDNA
   /// driver handles requires a bit more refactoring. So rely on the XDNA driver
   /// to manage some of this for now.
-  std::unordered_map<uint32_t, void *> vmem_handle_mappings;
   std::unordered_map<void*, uint32_t> vmem_addr_mappings;
 
   /// @brief Configures the CUs associated with the HW context for this queue.

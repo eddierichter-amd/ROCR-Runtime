@@ -196,7 +196,6 @@ XdnaDriver::AllocateMemory(const core::MemoryRegion &mem_region,
     *mem = mapped_mem;
   }
 
-  vmem_handle_mappings.emplace(create_bo_args.handle, mapped_mem);
   vmem_addr_mappings.emplace(mapped_mem, create_bo_args.handle);
 
   return HSA_STATUS_SUCCESS;
@@ -214,7 +213,6 @@ hsa_status_t XdnaDriver::FreeMemory(void *mem, size_t size) {
     return HSA_STATUS_ERROR;
   }
 
-  vmem_handle_mappings.erase(handle);
   vmem_addr_mappings.erase(it);
 
   return HSA_STATUS_SUCCESS;
@@ -273,8 +271,14 @@ hsa_status_t XdnaDriver::ImportDMABuf(int dmabuf_fd, core::Agent &agent,
   import_params.fd = dmabuf_fd;
   if (ioctl(fd_, DRM_IOCTL_PRIME_FD_TO_HANDLE, &import_params) < 0)
     return HSA_STATUS_ERROR;
-
   handle.handle = import_params.handle;
+ 
+  // If we can find the mapping in the map of exported buffers we will add allocation to our map. This occurs when we
+  // are importing a buffer from another driver in the same process.
+  auto va_itr = export_dmabuf_mappings_.find(dmabuf_fd);
+  if(va_itr != export_dmabuf_mappings_.end())
+    vmem_addr_mappings.emplace(va_itr->second, handle.handle);
+  
   return HSA_STATUS_SUCCESS;
 }
 
@@ -397,10 +401,6 @@ hsa_status_t XdnaDriver::InitDeviceHeap() {
   return HSA_STATUS_SUCCESS;
 }
 
-std::unordered_map<uint32_t, void*>& XdnaDriver::GetHandleMappings() {
-  return vmem_handle_mappings;
-}
-
 std::unordered_map<void*, uint32_t>& XdnaDriver::GetAddrMappings() { return vmem_addr_mappings; }
 
 hsa_status_t XdnaDriver::FreeDeviceHeap() {
@@ -480,8 +480,8 @@ hsa_status_t XdnaDriver::RegisterCmdBOs(
                                                        cmd_pkt_payload->data[operand_index]);
     auto operand_handle = vmem_addr_mappings.find(reinterpret_cast<void*>(operand_addr));
     if (operand_handle == vmem_addr_mappings.end()) return HSA_STATUS_ERROR;
-    bo_args.push_back(operand_handle->second);
     bo_addrs.push_back(operand_addr);
+    bo_args.push_back(operand_handle->second);
   }
 
   // Going through all of the operands in the command, keeping track of

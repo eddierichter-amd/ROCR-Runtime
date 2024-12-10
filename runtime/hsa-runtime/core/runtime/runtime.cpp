@@ -3287,6 +3287,10 @@ hsa_status_t Runtime::VMemoryHandleMap(void* va, size_t size, size_t in_offset,
     return status;
   assert(offset == 0);
 
+  // After exporting, add the mapping to a map of dmabuf mappings
+  // so other drivers can get the virtual address from the dmabuf_fd
+  agent_driver.AddDMABufMapping(dmabuf_fd, va);
+
   ShareableHandle shareable_handle;
   status = agent_driver.ImportDMABuf(dmabuf_fd, *agent, shareable_handle);
   if (status != HSA_STATUS_SUCCESS)
@@ -3381,6 +3385,10 @@ Runtime::MappedHandleAllowedAgent::MappedHandleAllowedAgent(
   if (status != HSA_STATUS_SUCCESS)
     return;
   assert(offset == 0);
+
+  // After exporting, add the mapping to a map of dmabuf mappings
+  // so other drivers can get the virtual address from the dmabuf_fd
+  targetAgent->driver().AddDMABufMapping(dmabuf_fd, va);
 
   // Import to target agent.
   status = targetAgent->driver().ImportDMABuf(dmabuf_fd, *targetAgent,

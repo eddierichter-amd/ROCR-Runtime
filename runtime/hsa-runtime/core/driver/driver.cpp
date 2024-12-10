@@ -50,6 +50,8 @@
 namespace rocr {
 namespace core {
 
+std::unordered_map<int, void *> Driver::export_dmabuf_mappings_ = {};
+
 Driver::Driver(DriverType kernel_driver_type, std::string devnode_name)
     : kernel_driver_type_(std::move(kernel_driver_type)),
       devnode_name_(std::move(devnode_name)) {}
@@ -74,6 +76,10 @@ hsa_status_t Driver::Close()
     return HSA_STATUS_ERROR;
   }
   return HSA_STATUS_SUCCESS;
+}
+
+void Driver::AddDMABufMapping(int dmabuf_fd, void * ptr) {
+  export_dmabuf_mappings_.emplace(dmabuf_fd, ptr);
 }
 
 } // namespace core
