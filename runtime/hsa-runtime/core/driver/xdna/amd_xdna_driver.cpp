@@ -275,10 +275,11 @@ hsa_status_t XdnaDriver::ImportDMABuf(int dmabuf_fd, core::Agent &agent,
  
   // If we can find the mapping in the map of exported buffers we will add allocation to our map. This occurs when we
   // are importing a buffer from another driver in the same process.
-  auto va_itr = export_dmabuf_mappings_.find(dmabuf_fd);
-  if(va_itr != export_dmabuf_mappings_.end())
+  auto dmabuf_mapping = core::Runtime::runtime_singleton_->GetDMABufMapping();
+  auto va_itr = dmabuf_mapping.find(dmabuf_fd);
+  if(va_itr != dmabuf_mapping.end())
     vmem_addr_mappings.emplace(va_itr->second, handle.handle);
-  
+
   return HSA_STATUS_SUCCESS;
 }
 

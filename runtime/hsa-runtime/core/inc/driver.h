@@ -98,13 +98,6 @@ public:
   /// @retval HSA_STATUS_SUCCESS if the driver was opened successfully.
   hsa_status_t Close();
 
-  /// @brief Add a mapping from dmabuf_fd to a pointer for drivers to keep
-  /// track of all exported buffers.
-  /// object.
-  /// @param dmabuf_fd File descriptor of dmabuf assocaited with buffer
-  /// @param ptr Address of buffer
-  void Driver::AddDMABufMapping(int dmabuf_fd, void * ptr);
-
   /// @brief Get driver version information.
   /// @retval DriverVersionInfo containing the driver's version information.
   const DriverVersionInfo &Version() const { return version_; }
@@ -204,10 +197,6 @@ protected:
 
   const std::string devnode_name_;
   int fd_ = -1;
-
-  // Used to track the mapping of dmabuf fds to address of buffers that
-  // have been exported.
-  static std::unordered_map<int, void *> export_dmabuf_mappings_;
 };
 
 } // namespace core

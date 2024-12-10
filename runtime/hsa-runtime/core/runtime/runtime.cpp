@@ -3139,6 +3139,14 @@ hsa_status_t Runtime::DmaBufClose(int dmabuf) {
 #endif
 }
 
+void Runtime::AddDMABufMapping(int dmabuf_fd, void * ptr) {
+  export_dmabuf_mappings_.emplace(dmabuf_fd, ptr);
+}
+
+std::unordered_map<int, void *> &Runtime::GetDMABufMapping() {
+  return export_dmabuf_mappings_;
+}
+
 hsa_status_t Runtime::VMemoryAddressReserve(void** va, size_t size, uint64_t address,
                                             uint64_t alignment, uint64_t flags) {
   void* addr = (void*)address;
@@ -3289,7 +3297,7 @@ hsa_status_t Runtime::VMemoryHandleMap(void* va, size_t size, size_t in_offset,
 
   // After exporting, add the mapping to a map of dmabuf mappings
   // so other drivers can get the virtual address from the dmabuf_fd
-  agent_driver.AddDMABufMapping(dmabuf_fd, va);
+  Runtime::runtime_singleton_->AddDMABufMapping(dmabuf_fd, va);
 
   ShareableHandle shareable_handle;
   status = agent_driver.ImportDMABuf(dmabuf_fd, *agent, shareable_handle);
@@ -3388,7 +3396,7 @@ Runtime::MappedHandleAllowedAgent::MappedHandleAllowedAgent(
 
   // After exporting, add the mapping to a map of dmabuf mappings
   // so other drivers can get the virtual address from the dmabuf_fd
-  targetAgent->driver().AddDMABufMapping(dmabuf_fd, va);
+  Runtime::runtime_singleton_->AddDMABufMapping(dmabuf_fd, va);
 
   // Import to target agent.
   status = targetAgent->driver().ImportDMABuf(dmabuf_fd, *targetAgent,

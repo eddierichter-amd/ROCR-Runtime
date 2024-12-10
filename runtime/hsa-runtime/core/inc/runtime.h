@@ -369,6 +369,16 @@ class Runtime {
 
   hsa_status_t DmaBufClose(int dmabuf);
 
+  /// @brief Add a mapping from dmabuf_fd to a pointer for drivers to keep
+  /// track of all exported buffers.
+  /// @param dmabuf_fd File descriptor of dmabuf assocaited with buffer
+  /// @param ptr Address of buffer
+  void AddDMABufMapping(int dmabuf_fd, void * ptr);
+
+  /// @brief Returns mapping of dmabuf fds to virtual addresses.
+  /// @retval dmabuf fd mapping to addresses
+  std::unordered_map<int, void *>& Runtime::GetDMABufMapping();
+
   hsa_status_t VMemoryAddressReserve(void** ptr, size_t size, uint64_t address, uint64_t alignment, uint64_t flags);
 
   hsa_status_t VMemoryAddressFree(void* ptr, size_t size);
@@ -818,6 +828,10 @@ class Runtime {
     MemoryRegion::AllocateFlags alloc_flag;
   };
   std::map<ThunkHandle, MemoryHandle> memory_handle_map_;
+
+  // Used to track the mapping of dmabuf fds to address of buffers that
+  // have been exported.
+  std::unordered_map<int, void *> export_dmabuf_mappings_;
 
   struct MappedHandle;
   struct MappedHandleAllowedAgent {
