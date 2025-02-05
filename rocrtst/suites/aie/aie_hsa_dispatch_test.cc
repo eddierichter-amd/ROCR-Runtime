@@ -54,11 +54,32 @@ hsa_status_t get_aie_agents(hsa_agent_t agent, void *data) {
   return get_agent(agent, aie_agents, HSA_DEVICE_TYPE_AIE);
 }
 
+// These are the different memory regions used to interact
+// with the NPU
+enum region_type {
+  // For allocating kernel arguments or other objects that only need
+  // system memory.
+  REGION_TYPE_DEV_MEM,
+  // For any other allocation, e.g., buffers.
+  REGION_TYPE_KERNARG,
+  // For allocating memory for programmable device image (PDI) files. These
+  // need to be mapped to the device so the hardware can access the PDIs.
+  REGION_TYPE_SVM
+};
+
 hsa_status_t get_coarse_global_mem_pool(hsa_amd_memory_pool_t pool, void *data,
-                                        bool kernarg) {
+                                        enum region_type type) {
   hsa_amd_segment_t segment_type;
+
   auto ret = hsa_amd_memory_pool_get_info(
       pool, HSA_AMD_MEMORY_POOL_INFO_SEGMENT, &segment_type);
+  if (ret != HSA_STATUS_SUCCESS) {
+    return ret;
+  }
+
+  size_t max_alloc_size;
+  ret = hsa_amd_memory_pool_get_info(
+      pool, HSA_AMD_MEMORY_POOL_INFO_ALLOC_MAX_SIZE, &max_alloc_size);
   if (ret != HSA_STATUS_SUCCESS) {
     return ret;
   }
@@ -71,7 +92,12 @@ hsa_status_t get_coarse_global_mem_pool(hsa_amd_memory_pool_t pool, void *data,
       return ret;
     }
 
-    if (kernarg) {
+    if(type == REGION_TYPE_SVM) {
+      if(max_alloc_size == 0) {
+        *static_cast<hsa_amd_memory_pool_t *>(data) = pool;
+      }
+    }
+    else if (type == REGION_TYPE_KERNARG) {
       if ((global_pool_flags &
            HSA_AMD_MEMORY_POOL_GLOBAL_FLAG_COARSE_GRAINED) &&
           (global_pool_flags & HSA_REGION_GLOBAL_FLAG_KERNARG)) {
@@ -91,12 +117,17 @@ hsa_status_t get_coarse_global_mem_pool(hsa_amd_memory_pool_t pool, void *data,
 
 hsa_status_t get_coarse_global_dev_mem_pool(hsa_amd_memory_pool_t pool,
                                             void *data) {
-  return get_coarse_global_mem_pool(pool, data, false);
+  return get_coarse_global_mem_pool(pool, data, REGION_TYPE_DEV_MEM);
 }
 
 hsa_status_t get_coarse_global_kernarg_mem_pool(hsa_amd_memory_pool_t pool,
                                                 void *data) {
-  return get_coarse_global_mem_pool(pool, data, true);
+  return get_coarse_global_mem_pool(pool, data, REGION_TYPE_KERNARG);
+}
+
+hsa_status_t get_coarse_global_svm_mem_pool(hsa_amd_memory_pool_t pool,
+                                                void *data) {
+  return get_coarse_global_mem_pool(pool, data, REGION_TYPE_SVM);
 }
 
 void load_pdi_file(hsa_amd_memory_pool_t mem_pool, const std::string &file_name,
@@ -144,11 +175,14 @@ int main(int argc, char **argv) {
   std::vector<hsa_agent_t> aie_agents;
   // For creating a queue on an AIE agent.
   hsa_queue_t *aie_queue(nullptr);
-  // Memory pool for allocating device-mapped memory. Used for PDI/DPU
-  // instructions.
-  hsa_amd_memory_pool_t global_dev_mem_pool{0};
-  // System memory pool. Used for allocating kernel argument data.
+  // For allocating kernel arguments or other objects that only need
+  // system memory.
   hsa_amd_memory_pool_t global_kernarg_mem_pool{0};
+  // For any other allocation, e.g., buffers.
+  hsa_amd_memory_pool_t global_dev_mem_pool{0};
+  // For allocating memory for programmable device image (PDI) files. These
+  // need to be mapped to the device so the hardware can access the PDIs.
+  hsa_amd_memory_pool_t global_svm_mem_pool{0};
   const std::string instr_inst_file_name(sourcePath / "add_one_insts.txt");
   const std::string pdi_file_name(sourcePath / "add_one.pdi");
   uint32_t *instr_inst_buf(nullptr);
@@ -180,18 +214,25 @@ int main(int argc, char **argv) {
   assert(aie_queue);
   assert(aie_queue->base_address);
 
-  // Find a pool for DEV BOs. This is a global system memory pool that is
-  // mapped to the device. Will be used for PDIs and DPU instructions.
-  r = hsa_amd_agent_iterate_memory_pools(
-      aie_agent, get_coarse_global_dev_mem_pool, &global_dev_mem_pool);
-  assert(r == HSA_STATUS_SUCCESS);
-
-  // Find a pool that supports kernel args. This is just normal system memory.
-  // It will be used for commands and input data.
+  // For allocating kernel arguments or other objects that only need
+  // system memory.
   r = hsa_amd_agent_iterate_memory_pools(
       aie_agent, get_coarse_global_kernarg_mem_pool, &global_kernarg_mem_pool);
   assert(r == HSA_STATUS_SUCCESS);
   assert(global_kernarg_mem_pool.handle);
+
+  // For any other allocation, e.g., buffers.
+  r = hsa_amd_agent_iterate_memory_pools(
+      aie_agent, get_coarse_global_dev_mem_pool, &global_dev_mem_pool);
+  assert(r == HSA_STATUS_SUCCESS);
+  assert(global_dev_mem_pool.handle);
+
+  // For allocating memory for programmable device image (PDI) files. These
+  // need to be mapped to the device so the hardware can access the PDIs.
+  r = hsa_amd_agent_iterate_memory_pools(
+      aie_agent, get_coarse_global_svm_mem_pool, &global_svm_mem_pool);
+  assert(r == HSA_STATUS_SUCCESS);
+  assert(global_svm_mem_pool.handle);
 
   // Getting the maximum size of the queue so we can submit that many consecutive
   // packets.
@@ -204,10 +245,11 @@ int main(int argc, char **argv) {
   // args (DEV BO).
   uint32_t num_instr;
   uint32_t pdi_size;
-  load_instr_file(global_dev_mem_pool, instr_inst_file_name,
+  load_instr_file(global_svm_mem_pool, instr_inst_file_name,
                 reinterpret_cast<void **>(&instr_inst_buf), num_instr);
-  load_pdi_file(global_dev_mem_pool, pdi_file_name,
+  load_pdi_file(global_svm_mem_pool, pdi_file_name,
                 reinterpret_cast<void **>(&pdi_buf), pdi_size);
+
 
   hsa_amd_aie_ert_hw_ctx_cu_config_addr_t cu_config {
                               .cu_config_addr = reinterpret_cast<uint64_t>(pdi_buf),
