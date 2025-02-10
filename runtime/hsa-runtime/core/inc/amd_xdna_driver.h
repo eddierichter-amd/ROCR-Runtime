@@ -42,6 +42,7 @@
 #ifndef HSA_RUNTIME_CORE_INC_AMD_XDNA_DRIVER_H_
 #define HSA_RUNTIME_CORE_INC_AMD_XDNA_DRIVER_H_
 
+#include <map>
 #include <memory>
 #include <unordered_map>
 
@@ -132,7 +133,6 @@ inline uint32_t GetOperandCount(uint32_t arg_count) {
 class XdnaDriver final : public core::Driver {
 public:
   XdnaDriver(std::string devnode_name);
-  ~XdnaDriver() = default;
 
   static hsa_status_t DiscoverDriver(std::unique_ptr<core::Driver>& driver);
 
@@ -145,9 +145,6 @@ public:
   hsa_status_t Init() override;
   hsa_status_t ShutDown() override;
   hsa_status_t QueryKernelModeDriver(core::DriverQuery query) override;
-
-  std::unordered_map<uint32_t, void*>& GetHandleMappings();
-  std::unordered_map<void*, uint32_t>& GetAddrMappings();
 
   hsa_status_t Open() override;
   hsa_status_t Close() override;
@@ -180,13 +177,14 @@ public:
   hsa_status_t SubmitCmdChain(hsa_amd_aie_ert_packet_t* first_pkt, uint32_t num_pkts,
                               uint32_t num_operands, uint32_t &hw_ctx_handle, uint32_t num_tiles);
 
-  // @brief Creates a new hardware context with the correct CUs
-  hsa_status_t XdnaDriver::ConfigHwCtxNewCUs(
-      uint32_t &hw_ctx_handle,
-      std::vector<uint32_t> new_cus,
-      uint32_t num_tiles);
+ private:
+  /// @brief Finds the BO associated with the address.
+  uint32_t FindBOHandle(void* mem);
 
-private:
+  // @brief Creates a new hardware context with the correct CUs
+  hsa_status_t ConfigHwCtxNewCUs(uint32_t& hw_ctx_handle, std::vector<uint32_t> new_cus,
+                                 uint32_t num_tiles);
+
   hsa_status_t QueryDriverVersion();
   /// @brief Allocate device accesible heap space.
   ///
@@ -210,8 +208,7 @@ private:
   /// @param cmd_pkt_payload A pointer to the payload of the command
   hsa_status_t RegisterCmdBOs(uint32_t count, std::vector<uint32_t>& bo_args,
                               std::vector<uint32_t>& bo_sizes, std::vector<uint64_t>& bo_addrs,
-                              hsa_amd_aie_ert_start_kernel_data_t* cmd_pkt_payload,
-                              const std::unordered_map<void*, uint32_t>& vmem_addr_mappings);
+                              hsa_amd_aie_ert_start_kernel_data_t* cmd_pkt_payload);
 
   /// @brief Syncs all BOs referenced in bo_args
   ///
@@ -229,8 +226,8 @@ private:
   /// object to track handle allocations. Using the VMEM API for mapping XDNA
   /// driver handles requires a bit more refactoring. So rely on the XDNA driver
   /// to manage some of this for now.
-  std::unordered_map<uint32_t, void *> vmem_handle_mappings;
-  std::unordered_map<void*, uint32_t> vmem_addr_mappings;
+  std::unordered_map<uint32_t, void*> vmem_handle_mappings;
+  std::map<void*, uint32_t> vmem_addr_mappings;
 
   /// @brief Storing cached CUs that have already been added to the hardware context.
   /// This maps the CU BO to the cu_mask in the hardware context
