@@ -327,6 +327,22 @@ hsa_status_t XdnaDriver::ImportDMABuf(int dmabuf_fd, core::Agent &agent,
     return HSA_STATUS_ERROR;
   }
   handle.handle = import_params.handle;
+
+  // If we can find the mapping in the map of exported buffers we will add
+  // allocation to our map. This occurs when we are importing a buffer from
+  // another driver in the same process.
+  auto dmabuf_mapping = core::Runtime::runtime_singleton_->GetDMABufMapping();
+  auto va_itr = dmabuf_mapping.find(dmabuf_fd);
+  BOHandle bo_handle;
+  if(va_itr != dmabuf_mapping.end()) {
+    void *va = va_itr->second.first;
+    size_t size = va_itr->second.second;
+    bo_handle.vaddr = va;
+    bo_handle.handle = handle.handle;
+    bo_handle.size = size;
+    vmem_addr_mappings.emplace(va, bo_handle);
+  }
+
   return HSA_STATUS_SUCCESS;
 }
 
