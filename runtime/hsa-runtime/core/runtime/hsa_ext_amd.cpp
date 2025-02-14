@@ -250,6 +250,7 @@ hsa_status_t hsa_amd_memory_fill(void* ptr, uint32_t value, size_t count) {
   CATCH;
 }
 
+
 hsa_status_t hsa_amd_memory_async_copy(void* dst, hsa_agent_t dst_agent_handle, const void* src,
                                        hsa_agent_t src_agent_handle, size_t size,
                                        uint32_t num_dep_signals, const hsa_signal_t* dep_signals,
@@ -624,6 +625,26 @@ uint32_t hsa_amd_signal_wait_any(uint32_t signal_count, hsa_signal_t* hsa_signal
 
   return satisfying_signal_idx;
   CATCHRET(uint32_t);
+}
+
+// NOTE: This is a sideband
+hsa_status_t
+hsa_amd_import_dma_buf(const hsa_agent_t *agent,
+                            int dma_buf_fd,
+                            void *addr, size_t size) {
+  TRY;
+  IS_OPEN();
+
+  core::Agent* agent_int = core::Agent::Convert(*agent);
+  //const auto driver = static_cast<XdnaDriver &>(agent_int->driver());
+  core::Driver* driver = &agent_int->driver();
+  IS_VALID(agent_int);
+
+  core::ShareableHandle handle;
+  core::Runtime::runtime_singleton_->AddDMABufMapping(dma_buf_fd, addr, size);
+  return driver->ImportDMABuf(dma_buf_fd, *agent_int, handle);
+
+  CATCH;
 }
 
 hsa_status_t hsa_amd_signal_async_handler(hsa_signal_t hsa_signal, hsa_signal_condition_t cond,

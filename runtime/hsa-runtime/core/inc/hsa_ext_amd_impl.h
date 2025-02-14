@@ -348,6 +348,13 @@ hsa_status_t hsa_amd_vmem_export_shareable_handle(int* dmabuf_fd,
 hsa_status_t hsa_amd_vmem_import_shareable_handle(int dmabuf_fd,
                                                   hsa_amd_vmem_alloc_handle_t* handle);
 
+// Mirrors AMD Extension APIs.
+hsa_status_t
+hsa_amd_import_dma_buf(const hsa_agent_t *agent,
+                            int dma_buf_fd,
+                            void *addr,
+                            size_t size);
+
 // Mirrors Amd Extension Apis
 hsa_status_t hsa_amd_vmem_retain_alloc_handle(hsa_amd_vmem_alloc_handle_t* allocHandle, void* addr);
 

@@ -1394,6 +1394,10 @@ hsa_status_t HSA_API hsa_amd_queue_cu_set_mask(const hsa_queue_t* queue,
 hsa_status_t HSA_API hsa_amd_queue_cu_get_mask(const hsa_queue_t* queue, uint32_t num_cu_mask_count,
                                                uint32_t* cu_mask);
 
+// NOTE: This is a sideband
+hsa_status_t HSA_API hsa_amd_import_dma_buf(
+    const hsa_agent_t *agent, int dma_buf_fd, void  *addr, size_t size);
+
 /** @} */
 
 /** \addtogroup memory Memory

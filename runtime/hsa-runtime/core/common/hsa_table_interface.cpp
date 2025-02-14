@@ -865,6 +865,14 @@ hsa_status_t HSA_API
                                      queue, enable);
 }
 
+// Mirrors AMD Extension APIs.
+// NOTE: This is a sideband and should not be commited
+hsa_status_t
+hsa_amd_import_dma_buf(const hsa_agent_t *agent,
+                            int dma_buf_fd, void *addr, size_t size) {
+  return amdExtTable->hsa_amd_import_dma_buf_fn(agent, dma_buf_fd, addr, size);
+}
+
 hsa_status_t HSA_API
   hsa_amd_profiling_async_copy_enable(bool enable) {
     return amdExtTable->hsa_amd_profiling_async_copy_enable_fn(enable);
