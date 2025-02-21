@@ -210,9 +210,9 @@ XdnaDriver::AllocateMemory(const core::MemoryRegion &mem_region,
 
   amdxdna_drm_create_bo create_bo_args = {};
   create_bo_args.size = size;
-  const bool use_bo_shmem = !m_region.IsDeviceSVM();
-  if (use_bo_shmem) {
-    create_bo_args.type = AMDXDNA_BO_SHMEM;
+  const bool use_bo_share = !m_region.IsDeviceSVM();
+  if (use_bo_share) {
+    create_bo_args.type = AMDXDNA_BO_SHARE;
   } else {
     create_bo_args.type = AMDXDNA_BO_DEV;
   }
@@ -242,7 +242,7 @@ XdnaDriver::AllocateMemory(const core::MemoryRegion &mem_region,
   /// TODO: For now we always map the memory and keep a mapping from handles
   /// to VA memory addresses. Once we can support the separate VMEM call to
   /// map handles we can fix this.
-  if (use_bo_shmem) {
+  if (use_bo_share) {
     bo_handle.vaddr =
         mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, get_bo_info_args.map_offset);
     if (bo_handle.vaddr == MAP_FAILED) {
@@ -302,9 +302,9 @@ hsa_status_t XdnaDriver::DestroyQueue(core::Queue &queue) const {
 
   auto& aie_queue = static_cast<AieAqlQueue&>(queue);
   if (aie_queue.GetHwCtxHandle() != AMDXDNA_INVALID_BO_HANDLE) {
-    amdxdna_drm_destroy_hwctx destroy_hwctx_args = {};
+    amdxdna_drm_destroy_ctx destroy_hwctx_args = {};
     destroy_hwctx_args.handle = aie_queue.GetHwCtxHandle();
-    if (ioctl(fd_, DRM_IOCTL_AMDXDNA_DESTROY_HWCTX, &destroy_hwctx_args) < 0) {
+    if (ioctl(fd_, DRM_IOCTL_AMDXDNA_DESTROY_CTX, &destroy_hwctx_args) < 0) {
       return HSA_STATUS_ERROR;
     }
   }
@@ -460,7 +460,7 @@ hsa_status_t XdnaDriver::ExecCmdAndWait(const BOHandle& cmd_chain_bo_handle,
                                         AieAqlQueue& aie_queue) {
   // Submit command chain.
   amdxdna_drm_exec_cmd exec_cmd = {};
-  exec_cmd.hwctx = aie_queue.GetHwCtxHandle();
+  exec_cmd.ctx = aie_queue.GetHwCtxHandle();
   exec_cmd.type = AMDXDNA_CMD_SUBMIT_EXEC_BUF;
   exec_cmd.cmd_handles = cmd_chain_bo_handle.handle;
   exec_cmd.args = reinterpret_cast<uint64_t>(bo_handles.data());
@@ -473,7 +473,7 @@ hsa_status_t XdnaDriver::ExecCmdAndWait(const BOHandle& cmd_chain_bo_handle,
 
   // Waiting for command chain to finish.
   amdxdna_drm_wait_cmd wait_cmd = {};
-  wait_cmd.hwctx = aie_queue.GetHwCtxHandle();
+  wait_cmd.ctx = aie_queue.GetHwCtxHandle();
   wait_cmd.timeout = DEFAULT_TIMEOUT_VAL;
   wait_cmd.seq = exec_cmd.seq;
 
@@ -780,10 +780,10 @@ XdnaDriver::BOHandle XdnaDriver::FindBOHandle(void* mem) const {
 
 hsa_status_t XdnaDriver::ConfigHwCtx(const PDICache& pdi_bo_handles, AieAqlQueue& aie_queue) {
   const size_t config_cu_param_size =
-      sizeof(amdxdna_hwctx_param_config_cu) + pdi_bo_handles.size() * sizeof(amdxdna_cu_config);
+      sizeof(amdxdna_ctx_param_config_cu) + pdi_bo_handles.size() * sizeof(amdxdna_cu_config);
 
   auto* xdna_config_cu_param =
-      static_cast<amdxdna_hwctx_param_config_cu*>(malloc(config_cu_param_size));
+      static_cast<amdxdna_ctx_param_config_cu*>(malloc(config_cu_param_size));
   if (xdna_config_cu_param == nullptr) {
     return HSA_STATUS_ERROR_OUT_OF_RESOURCES;
   }
@@ -805,9 +805,9 @@ hsa_status_t XdnaDriver::ConfigHwCtx(const PDICache& pdi_bo_handles, AieAqlQueue
     // command chains. If we move to a more asynchronous model, we will need to
     // figure out how hardware context destruction works while applications
     // are running
-    amdxdna_drm_destroy_hwctx destroy_hwctx_args = {};
+    amdxdna_drm_destroy_ctx destroy_hwctx_args = {};
     destroy_hwctx_args.handle = aie_queue.GetHwCtxHandle();
-    if (ioctl(fd_, DRM_IOCTL_AMDXDNA_DESTROY_HWCTX, &destroy_hwctx_args) < 0) {
+    if (ioctl(fd_, DRM_IOCTL_AMDXDNA_DESTROY_CTX, &destroy_hwctx_args) < 0) {
       return HSA_STATUS_ERROR;
     }
   }
@@ -815,23 +815,23 @@ hsa_status_t XdnaDriver::ConfigHwCtx(const PDICache& pdi_bo_handles, AieAqlQueue
   // Create the new hardware context
   // Currently we do not leverage QoS information.
   amdxdna_qos_info qos_info = {};
-  amdxdna_drm_create_hwctx create_hwctx_args = {};
+  amdxdna_drm_create_ctx create_hwctx_args = {};
   create_hwctx_args.qos_p = reinterpret_cast<uintptr_t>(&qos_info);
   create_hwctx_args.max_opc = 0x800;
   create_hwctx_args.num_tiles = aie_queue.GetAgent().GetNumCores();
 
-  if (ioctl(fd_, DRM_IOCTL_AMDXDNA_CREATE_HWCTX, &create_hwctx_args) < 0) {
+  if (ioctl(fd_, DRM_IOCTL_AMDXDNA_CREATE_CTX, &create_hwctx_args) < 0) {
     return HSA_STATUS_ERROR_OUT_OF_RESOURCES;
   }
 
   // Configure the new hardware context
-  amdxdna_drm_config_hwctx config_hw_ctx_args = {};
+  amdxdna_drm_config_ctx config_hw_ctx_args = {};
   config_hw_ctx_args.handle = create_hwctx_args.handle;
-  config_hw_ctx_args.param_type = DRM_AMDXDNA_HWCTX_CONFIG_CU;
+  config_hw_ctx_args.param_type = DRM_AMDXDNA_CTX_CONFIG_CU;
   config_hw_ctx_args.param_val = reinterpret_cast<uint64_t>(xdna_config_cu_param);
   config_hw_ctx_args.param_val_size = static_cast<uint32_t>(config_cu_param_size);
 
-  if (ioctl(fd_, DRM_IOCTL_AMDXDNA_CONFIG_HWCTX, &config_hw_ctx_args) < 0) {
+  if (ioctl(fd_, DRM_IOCTL_AMDXDNA_CONFIG_CTX, &config_hw_ctx_args) < 0) {
     return HSA_STATUS_ERROR;
   }
 
